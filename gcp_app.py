@@ -56,10 +56,12 @@ class App(tk.Tk):
         frame_cfg = ttk.LabelFrame(self, text='設定', padding=8)
         frame_cfg.grid(row=2, column=0, columnspan=3, sticky='ew', **PAD)
 
-        # 匯率
+        # 匯率（只允許數字、小數點、逗號）
         ttk.Label(frame_cfg, text='匯率：').grid(row=0, column=0, sticky='w')
         self.var_rate = tk.StringVar(value='')
-        ttk.Entry(frame_cfg, textvariable=self.var_rate, width=12).grid(row=0, column=1, sticky='w', padx=(0,20))
+        vcmd = (self.register(self._validate_rate), '%P')
+        ttk.Entry(frame_cfg, textvariable=self.var_rate, width=12,
+                  validate='key', validatecommand=vcmd).grid(row=0, column=1, sticky='w', padx=(0,20))
 
         # 產生總表
         self.var_summary = tk.BooleanVar(value=True)
@@ -101,6 +103,23 @@ class App(tk.Tk):
         w, h = self.winfo_width(), self.winfo_height()
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f'+{(sw-w)//2}+{(sh-h)//2}')
+
+    def _validate_rate(self, new_val):
+        """只允許數字、小數點(.)、逗號(,)，支援 Windows 地區設定"""
+        if new_val == '':
+            return True
+        allowed = set('0123456789.,')
+        return all(c in allowed for c in new_val)
+
+    def _parse_rate(self, rate_s):
+        """將匯率字串轉為 float，支援逗號或小數點作為小數分隔符"""
+        # 處理兩種情況：32.01 或 32,01（部分 Windows 地區）
+        s = rate_s.strip().replace(',', '.')
+        # 若有多個小數點（如 1.234.567），只保留最後一個
+        parts = s.split('.')
+        if len(parts) > 2:
+            s = ''.join(parts[:-1]) + '.' + parts[-1]
+        return float(s)
 
     def _force_focus(self):
         """修正 macOS 開啟時視窗無焦點，導致按鈕需點兩次的問題"""
@@ -162,9 +181,9 @@ class App(tk.Tk):
             return
         if rate_s:
             try:
-                rate = float(rate_s)
+                rate = self._parse_rate(rate_s)
             except ValueError:
-                messagebox.showerror('錯誤', '匯率格式不正確')
+                messagebox.showerror('錯誤', '匯率格式不正確，請輸入數字（例如：32.01）')
                 return
         else:
             rate = None
