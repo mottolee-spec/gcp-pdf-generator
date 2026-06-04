@@ -1,0 +1,69 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:       # 允許手動觸發
+
+permissions:
+  contents: write          # 建立 Release 需要寫入權限
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE
+        run: >
+          pyinstaller
+          --onefile
+          --noconsole
+          --clean
+          --name "GCP用量明細產生器"
+          --add-data "gcp_pdf_generator.py;."
+          gcp_app.py
+
+      - name: Upload artifact (備份用，保留 30 天)
+        uses: actions/upload-artifact@v4
+        with:
+          name: GCP用量明細產生器-exe
+          path: dist/GCP用量明細產生器.exe
+          retention-days: 30
+
+      - name: 發布到 Release（同事下載區）
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "最新版本（自動建置）"
+          body: |
+            ## GCP 用量明細 PDF 產生器
+
+            > 🤖 此版本由 GitHub Actions 自動建置
+
+            **更新說明：** ${{ github.event.head_commit.message }}
+            **建置時間：** ${{ github.event.head_commit.timestamp }}
+            **Commit：** `${{ github.sha }}`
+
+            ---
+
+            ### 📥 下載與使用方式
+            1. 點擊下方 `GCP用量明細產生器.exe` 下載
+            2. 雙擊執行，**不需要安裝 Python 或任何套件**
+            3. 選擇 Excel 來源檔、設定匯率與輸出資料夾，按「產生 PDF」
+          files: dist/GCP用量明細產生器.exe
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
