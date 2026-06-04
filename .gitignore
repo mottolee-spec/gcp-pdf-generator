@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 輸出檔（非原始碼）
+*.xlsx
+~$*.xlsx
+*.html
+*.pdf
+
+# 打包產物
+*.zip
+dist/
+build/
+*.spec
+
+# 與 GCP PDF 產生器無關的腳本
+grace_calculator.py
+mortgage_calculator.py
+make_docs.py
+購屋貸款試算_2050萬.py
+購屋貸款試算_新青安20.py
+方案C試算.py

@@ -68,11 +68,17 @@ class App(tk.Tk):
         ttk.Checkbutton(frame_cfg, text='同時產生專案總表 PDF', variable=self.var_summary).grid(
             row=0, column=2, sticky='w')
 
+        # 月份（手動輸入，留空則從檔名自動抓取）
+        ttk.Label(frame_cfg, text='月份（例：2026年04月）：').grid(row=1, column=0, sticky='w', pady=(8,0))
+        self.var_month = tk.StringVar(value='')
+        ttk.Entry(frame_cfg, textvariable=self.var_month, width=18).grid(
+            row=1, column=1, sticky='w', pady=(8,0), padx=(0,20))
+
         # 指定單一專案（可留空）
-        ttk.Label(frame_cfg, text='只產生指定專案（留空＝全部）：').grid(row=1, column=0, columnspan=2, sticky='w', pady=(8,0))
+        ttk.Label(frame_cfg, text='只產生指定專案（留空＝全部）：').grid(row=2, column=0, columnspan=2, sticky='w', pady=(8,0))
         self.var_project = tk.StringVar(value='')
         ttk.Entry(frame_cfg, textvariable=self.var_project, width=35).grid(
-            row=1, column=2, sticky='w', pady=(8,0))
+            row=2, column=2, sticky='w', pady=(8,0))
 
         # ── 執行按鈕 ──
         self.btn_run = ttk.Button(self, text='產生 PDF', command=self._run, width=18)
@@ -166,6 +172,7 @@ class App(tk.Tk):
         excel   = self.var_excel.get().strip()
         outdir  = self.var_outdir.get().strip()
         rate_s  = self.var_rate.get().strip()
+        month   = self.var_month.get().strip()
         project = self.var_project.get().strip()
         summary = self.var_summary.get()
 
@@ -193,26 +200,29 @@ class App(tk.Tk):
 
         # 在背景執行，避免 UI 凍結
         thread = threading.Thread(target=self._worker,
-                                  args=(excel, outdir, rate, project, summary),
+                                  args=(excel, outdir, rate, month, project, summary),
                                   daemon=True)
         thread.start()
 
-    def _worker(self, excel, outdir, rate, project, summary):
+    def _worker(self, excel, outdir, rate, month, project, summary):
         def log(msg, tag=''):
             self.after(0, self._log, msg, tag)
 
         try:
             os.makedirs(outdir, exist_ok=True)
 
-            # 月份標籤
+            # 月份標籤：優先使用手動輸入，否則從檔名自動抓取
             basename = os.path.basename(excel)
-            month_label = ''
-            m = re.search(r'(\d{4}年\d{2}月)', basename)
-            if m:
-                month_label = m.group(1)
+            if month:
+                month_label = month
+            else:
+                month_label = ''
+                m = re.search(r'(\d{4}年\d{2}月)', basename)
+                if m:
+                    month_label = m.group(1)
 
             log(f'來源：{basename}', 'info')
-            log(f'月份：{month_label}', 'info')
+            log(f'月份：{month_label or "（未指定）"}', 'info')
             log(f'輸出：{outdir}', 'info')
             log('')
 

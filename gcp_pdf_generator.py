@@ -98,7 +98,7 @@ def aggregate_project(rows):
         unit = r.get('Usage unit', '')
         key  = (svc, sku, unit)
         agg[key]['usage'] += float(r.get('Usage amount') or 0)
-        agg[key]['cost']  += float(r.get('List Cost($)') or r.get('Unrounded Cost ($)') or 0)
+        agg[key]['cost']  += float(r.get('List Cost($)') or r.get('List cost') or r.get('Unrounded Cost ($)') or 0)
 
     result = []
     for (svc, sku, unit), val in agg.items():
