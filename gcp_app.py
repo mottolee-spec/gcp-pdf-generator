@@ -74,6 +74,15 @@ class App(tk.Tk):
         ttk.Entry(frame_cfg, textvariable=self.var_month, width=18).grid(
             row=1, column=1, sticky='w', pady=(8,0), padx=(0,20))
 
+        # 折扣
+        ttk.Label(frame_cfg, text='折扣：').grid(row=1, column=2, sticky='w', pady=(8,0))
+        self.var_discount = tk.StringVar(value='86')
+        vcmd_disc = (self.register(self._validate_discount), '%P')
+        ttk.Entry(frame_cfg, textvariable=self.var_discount, width=5,
+                  validate='key', validatecommand=vcmd_disc).grid(
+            row=1, column=3, sticky='w', pady=(8,0))
+        ttk.Label(frame_cfg, text='折').grid(row=1, column=4, sticky='w', pady=(8,0), padx=(2,0))
+
         # 指定單一專案（可留空）
         ttk.Label(frame_cfg, text='只產生指定專案（留空＝全部）：').grid(row=2, column=0, columnspan=2, sticky='w', pady=(8,0))
         self.var_project = tk.StringVar(value='')
@@ -109,6 +118,14 @@ class App(tk.Tk):
         w, h = self.winfo_width(), self.winfo_height()
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f'+{(sw-w)//2}+{(sh-h)//2}')
+
+    def _validate_discount(self, new_val):
+        """只允許 1-100 的整數"""
+        if new_val == '':
+            return True
+        if not new_val.isdigit():
+            return False
+        return 1 <= int(new_val) <= 100
 
     def _validate_rate(self, new_val):
         """只允許數字、小數點(.)、逗號(,)，支援 Windows 地區設定"""
@@ -169,12 +186,13 @@ class App(tk.Tk):
 
     # ── 執行 ────────────────────────────────────────────────────
     def _run(self):
-        excel   = self.var_excel.get().strip()
-        outdir  = self.var_outdir.get().strip()
-        rate_s  = self.var_rate.get().strip()
-        month   = self.var_month.get().strip()
-        project = self.var_project.get().strip()
-        summary = self.var_summary.get()
+        excel        = self.var_excel.get().strip()
+        outdir       = self.var_outdir.get().strip()
+        rate_s       = self.var_rate.get().strip()
+        month        = self.var_month.get().strip()
+        discount_s   = self.var_discount.get().strip()
+        project      = self.var_project.get().strip()
+        summary      = self.var_summary.get()
 
         # 驗證
         if not excel or not os.path.exists(excel):
@@ -195,16 +213,18 @@ class App(tk.Tk):
         else:
             rate = None
 
+        discount = int(discount_s) / 100 if discount_s else 0.86
+
         self.btn_run.configure(state='disabled')
         self._clear_log()
 
         # 在背景執行，避免 UI 凍結
         thread = threading.Thread(target=self._worker,
-                                  args=(excel, outdir, rate, month, project, summary),
+                                  args=(excel, outdir, rate, month, discount, project, summary),
                                   daemon=True)
         thread.start()
 
-    def _worker(self, excel, outdir, rate, month, project, summary):
+    def _worker(self, excel, outdir, rate, month, discount, project, summary):
         def log(msg, tag=''):
             self.after(0, self._log, msg, tag)
 
@@ -260,7 +280,7 @@ class App(tk.Tk):
                 m2 = re.search(r'(\d{4})年(\d{2})月', month_label)
                 fname = f'尚峪{m2.group(2)}月_GCP專案總表.pdf' if m2 else '尚峪_GCP專案總表.pdf'
                 summary_path = os.path.join(outdir, fname)
-                generate_summary_pdf(month_label, projects_totals, rate, summary_path, font_name)
+                generate_summary_pdf(month_label, projects_totals, rate, summary_path, font_name, discount)
                 log(f'  ✓  {fname}  （總表）', 'done')
 
             log('')

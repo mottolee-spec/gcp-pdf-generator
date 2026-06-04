@@ -245,15 +245,17 @@ def generate_pdf(project_id, month_label, aggregated_rows, output_path, font_nam
     doc.build(story)
 
 # ── 產生總表 PDF ────────────────────────────────────────────────
-def generate_summary_pdf(month_label, projects_totals, exchange_rate, output_path, font_name):
+def generate_summary_pdf(month_label, projects_totals, exchange_rate, output_path, font_name, discount=0.86):
     """
     projects_totals: { project_id: total_usd }
     exchange_rate: float
+    discount: float, e.g. 0.86 for 86折
     """
-    total_usd   = sum(projects_totals.values())
-    twd         = round(total_usd * exchange_rate)
-    twd_83      = round(twd * 0.83)
-    twd_tax     = round(twd_83 * 1.05)
+    total_usd    = sum(projects_totals.values())
+    twd          = round(total_usd * exchange_rate)
+    twd_disc     = round(twd * discount)
+    twd_tax      = round(twd_disc * 1.05)
+    discount_pct = int(round(discount * 100))
 
     # 月份顯示格式：2026年03月 → 2026.03
     import re
@@ -297,7 +299,7 @@ def generate_summary_pdf(month_label, projects_totals, exchange_rate, output_pat
     # ── 頂部資訊列（左：金額區塊，右：月份）──
     info_left = [
         [Paragraph('台幣金額：', cn_normal),      Paragraph(f'${twd:,}', cn_normal)],
-        [Paragraph('未稅金額(83折後):', cn_normal), Paragraph(f'${twd_83:,}', cn_normal)],
+        [Paragraph(f'未稅金額({discount_pct}折後):', cn_normal), Paragraph(f'${twd_disc:,}', cn_normal)],
         [Paragraph('含稅金額：', cn_normal),       Paragraph(f'${twd_tax:,}', cn_normal)],
     ]
     left_table = Table(info_left, colWidths=[4*cm, 3.5*cm])
