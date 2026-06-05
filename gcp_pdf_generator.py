@@ -86,30 +86,32 @@ def load_source_data(excel_path):
     return projects
 
 # ── 彙整同一專案的用量 ─────────────────────────────────────────
+def _get_cost(row):
+    """
+    依優先順序取 List Cost 欄位值，用 is not None 避免 0 值被 or 跳過。
+    優先順序：List Cost($) → List cost → Unrounded Cost ($)
+    """
+    for col in ('List Cost($)', 'List cost', 'Unrounded Cost ($)'):
+        v = row.get(col)
+        if v is not None:
+            return float(v)
+    return 0.0
+
 def aggregate_project(rows):
     """
-    依照 (Service description, SKU description, Usage unit) 合併，
-    加總 Usage amount 及 List Cost($)
+    保留每筆非零費用的明細（不合併同 SKU），按金額由大到小排序
     """
-    agg = defaultdict(lambda: {'usage': 0.0, 'cost': 0.0})
-    for r in rows:
-        svc  = r.get('Service description', '')
-        sku  = r.get('SKU description', '')
-        unit = r.get('Usage unit', '')
-        key  = (svc, sku, unit)
-        agg[key]['usage'] += float(r.get('Usage amount') or 0)
-        agg[key]['cost']  += float(r.get('List Cost($)') or r.get('List cost') or r.get('Unrounded Cost ($)') or 0)
-
     result = []
-    for (svc, sku, unit), val in agg.items():
-        if val['cost'] == 0:
+    for r in rows:
+        cost = _get_cost(r)
+        if cost == 0:
             continue
         result.append({
-            'service': svc,
-            'sku': sku,
-            'usage': val['usage'],
-            'unit': unit,
-            'cost': val['cost'],
+            'service': r.get('Service description', ''),
+            'sku':     r.get('SKU description', ''),
+            'usage':   float(r.get('Usage amount') or 0),
+            'unit':    r.get('Usage unit', ''),
+            'cost':    cost,
         })
     result.sort(key=lambda x: x['cost'], reverse=True)
     return result
