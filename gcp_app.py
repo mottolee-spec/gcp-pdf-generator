@@ -31,6 +31,8 @@ class App(tk.Tk):
         self._center()
         # 修正 macOS 視窗焦點問題
         self.after(200, self._force_focus)
+        # Windows：對數字欄位停用 IME，避免輸入法攔截小數點
+        self.after(300, self._disable_ime)
 
     # ── 版面 ────────────────────────────────────────────────────
     def _build_ui(self):
@@ -59,8 +61,8 @@ class App(tk.Tk):
         # 匯率
         ttk.Label(frame_cfg, text='匯率：').grid(row=0, column=0, sticky='w')
         self.var_rate = tk.StringVar(value='')
-        ttk.Entry(frame_cfg, textvariable=self.var_rate, width=12).grid(
-            row=0, column=1, sticky='w', padx=(0,20))
+        self._rate_entry = ttk.Entry(frame_cfg, textvariable=self.var_rate, width=12)
+        self._rate_entry.grid(row=0, column=1, sticky='w', padx=(0,20))
 
         # 產生總表
         self.var_summary = tk.BooleanVar(value=True)
@@ -76,8 +78,8 @@ class App(tk.Tk):
         # 折扣
         ttk.Label(frame_cfg, text='折扣：').grid(row=1, column=2, sticky='w', pady=(8,0))
         self.var_discount = tk.StringVar(value='86')
-        ttk.Entry(frame_cfg, textvariable=self.var_discount, width=5).grid(
-            row=1, column=3, sticky='w', pady=(8,0))
+        self._discount_entry = ttk.Entry(frame_cfg, textvariable=self.var_discount, width=5)
+        self._discount_entry.grid(row=1, column=3, sticky='w', pady=(8,0))
         ttk.Label(frame_cfg, text='折').grid(row=1, column=4, sticky='w', pady=(8,0), padx=(2,0))
 
         # 指定單一專案（可留空）
@@ -130,6 +132,20 @@ class App(tk.Tk):
         """修正 macOS 開啟時視窗無焦點，導致按鈕需點兩次的問題"""
         self.lift()
         self.focus_force()
+
+    def _disable_ime(self):
+        """Windows：對匯率/折扣欄位停用 IME，防止中文輸入法攔截小數點"""
+        import sys
+        if sys.platform != 'win32':
+            return
+        try:
+            import ctypes
+            imm32 = ctypes.windll.imm32
+            for entry in (self._rate_entry, self._discount_entry):
+                hwnd = entry.winfo_id()
+                imm32.ImmAssociateContextEx(hwnd, None, 0)
+        except Exception:
+            pass
 
     def _pick_excel(self):
         path = filedialog.askopenfilename(
