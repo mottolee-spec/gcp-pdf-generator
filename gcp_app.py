@@ -56,12 +56,11 @@ class App(tk.Tk):
         frame_cfg = ttk.LabelFrame(self, text='設定', padding=8)
         frame_cfg.grid(row=2, column=0, columnspan=3, sticky='ew', **PAD)
 
-        # 匯率（只允許數字、小數點、逗號）
+        # 匯率
         ttk.Label(frame_cfg, text='匯率：').grid(row=0, column=0, sticky='w')
         self.var_rate = tk.StringVar(value='')
-        vcmd = (self.register(self._validate_rate), '%P')
-        ttk.Entry(frame_cfg, textvariable=self.var_rate, width=12,
-                  validate='key', validatecommand=vcmd).grid(row=0, column=1, sticky='w', padx=(0,20))
+        ttk.Entry(frame_cfg, textvariable=self.var_rate, width=12).grid(
+            row=0, column=1, sticky='w', padx=(0,20))
 
         # 產生總表
         self.var_summary = tk.BooleanVar(value=True)
@@ -77,9 +76,7 @@ class App(tk.Tk):
         # 折扣
         ttk.Label(frame_cfg, text='折扣：').grid(row=1, column=2, sticky='w', pady=(8,0))
         self.var_discount = tk.StringVar(value='86')
-        vcmd_disc = (self.register(self._validate_discount), '%P')
-        ttk.Entry(frame_cfg, textvariable=self.var_discount, width=5,
-                  validate='key', validatecommand=vcmd_disc).grid(
+        ttk.Entry(frame_cfg, textvariable=self.var_discount, width=5).grid(
             row=1, column=3, sticky='w', pady=(8,0))
         ttk.Label(frame_cfg, text='折').grid(row=1, column=4, sticky='w', pady=(8,0), padx=(2,0))
 
@@ -118,21 +115,6 @@ class App(tk.Tk):
         w, h = self.winfo_width(), self.winfo_height()
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f'+{(sw-w)//2}+{(sh-h)//2}')
-
-    def _validate_discount(self, new_val):
-        """只允許 1-100 的整數"""
-        if new_val == '':
-            return True
-        if not new_val.isdigit():
-            return False
-        return 1 <= int(new_val) <= 100
-
-    def _validate_rate(self, new_val):
-        """只允許數字、小數點(.)、逗號(,)，支援 Windows 地區設定"""
-        if new_val == '':
-            return True
-        allowed = set('0123456789.,')
-        return all(c in allowed for c in new_val)
 
     def _parse_rate(self, rate_s):
         """將匯率字串轉為 float，支援逗號或小數點作為小數分隔符"""
